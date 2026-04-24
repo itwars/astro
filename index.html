@@ -1,9 +1,416 @@
-Astrophotography exposure time
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#0a0a14">
+    <meta name="description" content="Calculateur de temps d'exposition astrophotographique">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AstroExp">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='36' fill='%230a0a14'/><circle cx='90' cy='90' r='22' stroke='%23f0a040' stroke-width='3' fill='none'/><circle cx='90' cy='90' r='8' fill='%23f0a040'/><line x1='90' y1='58' x2='90' y2='48' stroke='%23f0a040' stroke-width='2.5' stroke-linecap='round'/><line x1='90' y1='122' x2='90' y2='132' stroke='%23f0a040' stroke-width='2.5' stroke-linecap='round'/><line x1='58' y1='90' x2='48' y2='90' stroke='%23f0a040' stroke-width='2.5' stroke-linecap='round'/><line x1='122' y1='90' x2='132' y2='90' stroke='%23f0a040' stroke-width='2.5' stroke-linecap='round'/><circle cx='90' cy='90' r='35' stroke='%23f0a040' stroke-width='1' fill='none' opacity='0.5' stroke-dasharray='4 6'/></svg>">
+    <title>AstroExp – Calculateur d'exposition</title>
+    <style>
+        :root {
+            --bg: #0a0a14;
+            --surface: #131320;
+            --surface2: #1a1a2e;
+            --border: #252540;
+            --text: #e0e0e8;
+            --text-secondary: #9999b0;
+            --accent: #f0a040;
+            --accent-glow: #f0a04066;
+            --danger: #e05555;
+            --highlight-surface: #1f1a28;
+            --highlight-border: #f0a04044;
+            --input-bg: #1a1a2e;
+            --input-border: #2a2a44;
+            --input-focus: #f0a040;
+            --shadow: 0 2px 12px rgba(0,0,0,0.5);
+            --radius: 14px;
+            --radius-sm: 10px;
+            --transition: 0.2s ease;
+            --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+        }
+        body.night-mode {
+            --bg: #0a0000;
+            --surface: #130808;
+            --surface2: #1a0a0a;
+            --border: #301515;
+            --text: #e8d0d0;
+            --text-secondary: #b08080;
+            --accent: #e04040;
+            --accent-glow: #e0404066;
+            --danger: #e04040;
+            --highlight-surface: #1a0a0f;
+            --highlight-border: #e0404044;
+            --input-bg: #1a0a0a;
+            --input-border: #2a1010;
+            --input-focus: #e04040;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { height: 100%; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-font-smoothing: antialiased; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg); color: var(--text);
+            min-height: 100dvh; display: flex; flex-direction: column; align-items: center;
+            padding: 16px; padding-top: max(16px, env(safe-area-inset-top));
+            padding-bottom: max(24px, env(safe-area-inset-bottom));
+            transition: background 0.4s ease, color 0.4s ease;
+            background-image:
+                radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.06), transparent),
+                radial-gradient(1px 1px at 55% 12%, rgba(255,255,255,0.04), transparent),
+                radial-gradient(1.5px 1.5px at 78% 35%, rgba(255,255,255,0.07), transparent),
+                radial-gradient(1px 1px at 30% 65%, rgba(255,255,255,0.05), transparent),
+                radial-gradient(1.5px 1.5px at 70% 72%, rgba(255,255,255,0.06), transparent),
+                radial-gradient(1px 1px at 20% 80%, rgba(255,255,255,0.03), transparent),
+                radial-gradient(1px 1px at 90% 18%, rgba(255,255,255,0.05), transparent),
+                radial-gradient(1.5px 1.5px at 45% 50%, rgba(255,255,255,0.04), transparent);
+            background-attachment: fixed;
+        }
+        .app-container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 14px; }
+        .header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; }
+        .header-left { display: flex; align-items: center; gap: 10px; }
+        .logo-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--surface2); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+        .app-title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.3px; color: var(--text); line-height: 1.1; }
+        .app-subtitle { font-size: 0.7rem; font-weight: 500; color: var(--text-secondary); letter-spacing: 0.4px; text-transform: uppercase; }
+        .night-toggle { width: 44px; height: 44px; border-radius: 50%; background: var(--surface2); border: 1.5px solid var(--border); cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: all var(--transition); flex-shrink: 0; color: var(--text); }
+        .night-toggle:active { transform: scale(0.94); background: var(--surface); }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow); transition: all var(--transition); }
+        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .card-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-secondary); }
+        .badge { font-size: 0.65rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: var(--surface2); border: 1px solid var(--border); color: var(--text-secondary); letter-spacing: 0.3px; }
+        .badge.best { background: var(--highlight-surface); border-color: var(--highlight-border); color: var(--accent); }
+        .input-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .input-group { flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 4px; }
+        .input-group label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); }
+        .input-group input { width: 100%; padding: 11px 13px; border-radius: var(--radius-sm); background: var(--input-bg); border: 1.5px solid var(--input-border); color: var(--text); font-size: 1rem; font-weight: 500; font-family: var(--font-mono); letter-spacing: -0.2px; transition: all var(--transition); -webkit-appearance: none; appearance: none; outline: none; }
+        .input-group input:focus { border-color: var(--input-focus); box-shadow: 0 0 0 3px var(--accent-glow); background: var(--surface2); }
+        .input-suffix { font-size: 0.65rem; color: var(--text-secondary); font-weight: 500; margin-left: 2px; }
+        .preset-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+        .preset-btn { padding: 8px 14px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--surface2); color: var(--text-secondary); transition: all var(--transition); white-space: nowrap; letter-spacing: 0.2px; }
+        .preset-btn:active { transform: scale(0.95); background: var(--surface); }
+        .preset-btn.active { background: var(--highlight-surface); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
+        .results-grid { display: flex; flex-direction: column; gap: 8px; }
+        .result-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface2); border: 1.5px solid var(--border); transition: all var(--transition); gap: 10px; }
+        .result-item.highlight { background: var(--highlight-surface); border-color: var(--highlight-border); box-shadow: 0 0 16px var(--accent-glow); position: relative; }
+        .result-item.highlight::before { content: '★ Meilleure précision'; position: absolute; top: -9px; right: 12px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent); background: var(--surface); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--highlight-border); }
+        .result-name { font-size: 0.78rem; font-weight: 600; color: var(--text); letter-spacing: 0.2px; flex-shrink: 0; }
+        .result-meta { font-size: 0.6rem; color: var(--text-secondary); font-weight: 400; letter-spacing: 0.3px; }
+        .result-value { font-size: 1.5rem; font-weight: 700; font-family: var(--font-mono); color: var(--accent); letter-spacing: -0.5px; text-align: right; flex-shrink: 0; }
+        .result-value span { font-size: 0.7rem; font-weight: 500; color: var(--text-secondary); letter-spacing: 0; }
+        .result-item.highlight .result-value { color: var(--accent); font-size: 1.7rem; }
+        .info-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--surface2); border: 1px solid var(--border); font-size: 0.68rem; color: var(--text-secondary); letter-spacing: 0.2px; line-height: 1.4; }
+        .info-icon { flex-shrink: 0; font-size: 1rem; }
+        @media (max-width: 380px) {
+            .input-row { flex-direction: column; gap: 8px; }
+            .result-value { font-size: 1.2rem; }
+            .result-item.highlight .result-value { font-size: 1.35rem; }
+            .app-title { font-size: 1.1rem; }
+        }
+    </style>
+    <link rel="manifest" id="manifest-link">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="header-left">
+                <div class="logo-icon">🔭</div>
+                <div>
+                    <div class="app-title">AstroExp</div>
+                    <div class="app-subtitle">Calculateur d'exposition</div>
+                </div>
+            </div>
+            <button class="night-toggle" id="nightToggle" aria-label="Mode nuit" title="Mode nuit rouge">🌙</button>
+        </header>
 
-This piece of code compute exposure time according 4 differents methodes :
+        <div class="card" id="presetCard">
+            <div class="card-header">
+                <span class="card-label">📷 Profil caméra</span>
+                <span class="badge active" id="presetBadge">Fujifilm X-T5</span>
+            </div>
+            <div class="preset-row" id="presetButtons">
+                <button class="preset-btn active" data-preset="xt5">Fujifilm X-T5</button>
+                <button class="preset-btn" data-preset="xt4">X-T4 / X-T3</button>
+                <button class="preset-btn" data-preset="sony_a7iv">Sony A7 IV</button>
+                <button class="preset-btn" data-preset="canon_r6">Canon R6 II</button>
+                <button class="preset-btn" data-preset="custom">Personnalisé</button>
+            </div>
+        </div>
 
-NPF: (35 x Aperture +30 x Pixel Pitch) / Focal Length​​
-NPF full: Accuracy x (16.9 x Aperture + 0.10 x Focal Length + 13.7 x Pixel Pitch) / (Focal Length x cos(declinaison))
-4Crop: 100 x (4−crop​) / Focal Length
-Rule500: 500 / Crop-Factor x Focal Length
-Best accuracy of exposure time is given by NPF full rule
+        <div class="card" id="paramsCard">
+            <div class="card-header"><span class="card-label">⚙️ Paramètres</span></div>
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="aperture">Ouverture <span class="input-suffix">(f/)</span></label>
+                    <input type="number" id="aperture" value="2.8" step="0.1" min="0.7" max="32" inputmode="decimal">
+                </div>
+                <div class="input-group">
+                    <label for="focalLength">Focale <span class="input-suffix">(mm)</span></label>
+                    <input type="number" id="focalLength" value="16" step="1" min="4" max="800" inputmode="decimal">
+                </div>
+            </div>
+            <div class="input-row" style="margin-top:10px;">
+                <div class="input-group">
+                    <label for="pixelPitch">Taille pixel <span class="input-suffix">(µm)</span></label>
+                    <input type="number" id="pixelPitch" value="3.04" step="0.01" min="1" max="20" inputmode="decimal">
+                </div>
+                <div class="input-group">
+                    <label for="cropFactor">Facteur de crop</label>
+                    <input type="number" id="cropFactor" value="1.5" step="0.1" min="0.5" max="8" inputmode="decimal">
+                </div>
+            </div>
+            <div class="input-row" style="margin-top:10px;">
+                <div class="input-group">
+                    <label for="declination">Déclinaison <span class="input-suffix">(°)</span></label>
+                    <input type="number" id="declination" value="0" step="1" min="0" max="89" inputmode="decimal">
+                </div>
+                <div class="input-group">
+                    <label for="accuracy">Facteur de précision</label>
+                    <input type="number" id="accuracy" value="1" step="1" min="1" max="3" inputmode="decimal">
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="quickLensCard">
+            <div class="card-header"><span class="card-label">🔍 Focales rapides</span></div>
+            <div class="preset-row" id="quickFocalButtons">
+                <button class="preset-btn" data-fl="12">12mm</button>
+                <button class="preset-btn active" data-fl="16">16mm</button>
+                <button class="preset-btn" data-fl="23">23mm</button>
+                <button class="preset-btn" data-fl="35">35mm</button>
+                <button class="preset-btn" data-fl="50">50mm</button>
+                <button class="preset-btn" data-fl="85">85mm</button>
+                <button class="preset-btn" data-fl="135">135mm</button>
+            </div>
+            <div class="preset-row" style="margin-top:6px;" id="quickApertureButtons">
+                <button class="preset-btn" data-ap="1.4">f/1.4</button>
+                <button class="preset-btn active" data-ap="2.8">f/2.8</button>
+                <button class="preset-btn" data-ap="4">f/4</button>
+                <button class="preset-btn" data-ap="5.6">f/5.6</button>
+                <button class="preset-btn" data-ap="8">f/8</button>
+            </div>
+        </div>
+
+        <div class="card" id="resultsCard">
+            <div class="card-header">
+                <span class="card-label">📊 Temps d'exposition</span>
+                <span class="badge best">NPF Full = meilleure précision</span>
+            </div>
+            <div class="results-grid" id="resultsGrid">
+                <div class="result-item highlight" id="resultNpfFull">
+                    <div>
+                        <div class="result-name">NPF Full</div>
+                        <div class="result-meta">Précision × (16.9·Ap + 0.10·FL + 13.7·PP) / (FL × cos δ)</div>
+                    </div>
+                    <div class="result-value" id="valNpfFull">--<span> s</span></div>
+                </div>
+                <div class="result-item" id="resultNpf">
+                    <div>
+                        <div class="result-name">NPF</div>
+                        <div class="result-meta">(35·Ap + 30·PP) / FL</div>
+                    </div>
+                    <div class="result-value" id="valNpf">--<span> s</span></div>
+                </div>
+                <div class="result-item" id="result4Crop">
+                    <div>
+                        <div class="result-name">4Crop</div>
+                        <div class="result-meta">100 × (4 − crop) / FL</div>
+                    </div>
+                    <div class="result-value" id="val4Crop">--<span> s</span></div>
+                </div>
+                <div class="result-item" id="result500">
+                    <div>
+                        <div class="result-name">Règle des 500</div>
+                        <div class="result-meta">500 / (crop × FL)</div>
+                    </div>
+                    <div class="result-value" id="val500">--<span> s</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-bar">
+            <span class="info-icon">💡</span>
+            <span>NPF Full tient compte de l'ouverture, de la taille des pixels, de la focale et de la déclinaison. Précision = 1 pour des étoiles ponctuelles, 2 pour un léger filé.</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const $ = (sel) => document.querySelector(sel);
+            const $$ = (sel) => document.querySelectorAll(sel);
+            const apertureInput = $('#aperture');
+            const focalLengthInput = $('#focalLength');
+            const pixelPitchInput = $('#pixelPitch');
+            const cropFactorInput = $('#cropFactor');
+            const declinationInput = $('#declination');
+            const accuracyInput = $('#accuracy');
+            const nightToggle = $('#nightToggle');
+            const presetButtons = $$('#presetButtons .preset-btn');
+            const quickFlButtons = $$('#quickFocalButtons .preset-btn');
+            const quickApButtons = $$('#quickApertureButtons .preset-btn');
+            const presetBadge = $('#presetBadge');
+            const valNpfFull = $('#valNpfFull');
+            const valNpf = $('#valNpf');
+            const val4Crop = $('#val4Crop');
+            const val500 = $('#val500');
+
+            const presets = {
+                xt5: { name: 'Fujifilm X-T5', pixelPitch: 3.04, cropFactor: 1.5, aperture: 2.8, focalLength: 16 },
+                xt4: { name: 'Fujifilm X-T4 / X-T3', pixelPitch: 3.75, cropFactor: 1.5, aperture: 2.8, focalLength: 16 },
+                sony_a7iv: { name: 'Sony A7 IV', pixelPitch: 5.08, cropFactor: 1.0, aperture: 2.8, focalLength: 24 },
+                canon_r6: { name: 'Canon R6 Mark II', pixelPitch: 5.98, cropFactor: 1.0, aperture: 2.8, focalLength: 24 },
+                custom: { name: 'Personnalisé', pixelPitch: null, cropFactor: null, aperture: null, focalLength: null },
+            };
+            let currentPreset = 'xt5';
+            let currentQuickFl = 16;
+            let currentQuickAp = 2.8;
+
+            function toRad(deg) { return deg * (Math.PI / 180); }
+            function safeCos(deg) { const clamped = Math.min(89, Math.max(0, deg)); return Math.cos(toRad(clamped)); }
+
+            function calculateAll() {
+                const aperture = parseFloat(apertureInput.value) || 2.8;
+                const focalLength = parseFloat(focalLengthInput.value) || 16;
+                const pixelPitch = parseFloat(pixelPitchInput.value) || 3.04;
+                const cropFactor = parseFloat(cropFactorInput.value) || 1.5;
+                const declination = parseFloat(declinationInput.value) || 0;
+                const accuracy = parseFloat(accuracyInput.value) || 1;
+                if (aperture <= 0 || focalLength <= 0 || pixelPitch <= 0 || cropFactor <= 0) return { npfFull: null, npf: null, fourCrop: null, rule500: null };
+                const cosDecl = safeCos(declination);
+                if (cosDecl < 0.017) return { npfFull: null, npf: null, fourCrop: null, rule500: null, error: 'Déclinaison trop élevée (>89°)' };
+                const npf = (35 * aperture + 30 * pixelPitch) / focalLength;
+                const npfFull = accuracy * (16.9 * aperture + 0.10 * focalLength + 13.7 * pixelPitch) / (focalLength * cosDecl);
+                const fourCrop = cropFactor < 4 ? (100 * (4 - cropFactor)) / focalLength : null;
+                const rule500 = 500 / (cropFactor * focalLength);
+                return { npfFull, npf, fourCrop, rule500 };
+            }
+
+            function formatNum(seconds) {
+                if (seconds === null || seconds === undefined || !isFinite(seconds) || seconds < 0) return null;
+                return seconds;
+            }
+
+            function updateResults() {
+                const r = calculateAll();
+                if (r.error) {
+                    valNpfFull.innerHTML = '<span style="font-size:0.8rem;color:var(--danger);">N/A</span>';
+                    valNpf.innerHTML = '<span style="font-size:0.8rem;color:var(--danger);">N/A</span>';
+                    val4Crop.innerHTML = '<span style="font-size:0.8rem;color:var(--danger);">N/A</span>';
+                    val500.innerHTML = '<span style="font-size:0.8rem;color:var(--danger);">N/A</span>';
+                    return;
+                }
+                valNpfFull.innerHTML = (formatNum(r.npfFull) !== null ? r.npfFull.toFixed(2) : '—') + '<span> s</span>';
+                valNpf.innerHTML = (formatNum(r.npf) !== null ? r.npf.toFixed(2) : '—') + '<span> s</span>';
+                val4Crop.innerHTML = (formatNum(r.fourCrop) !== null ? r.fourCrop.toFixed(2) : '—') + '<span> s</span>';
+                val500.innerHTML = (formatNum(r.rule500) !== null ? r.rule500.toFixed(2) : '—') + '<span> s</span>';
+                const npfFullItem = $('#resultNpfFull');
+                if (npfFullItem && r.npfFull !== null && isFinite(r.npfFull)) npfFullItem.classList.add('highlight');
+            }
+
+            function applyPreset(key) {
+                const p = presets[key]; if (!p) return;
+                currentPreset = key;
+                presetBadge.textContent = p.name;
+                if (p.pixelPitch !== null) pixelPitchInput.value = p.pixelPitch;
+                if (p.cropFactor !== null) cropFactorInput.value = p.cropFactor;
+                if (p.aperture !== null) { apertureInput.value = p.aperture; currentQuickAp = p.aperture; }
+                if (p.focalLength !== null) { focalLengthInput.value = p.focalLength; currentQuickFl = p.focalLength; }
+                presetButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === key));
+                updateQuickFlButtons();
+                updateQuickApButtons();
+                updateResults();
+                saveSettings();
+            }
+
+            function updateQuickFlButtons() {
+                quickFlButtons.forEach(b => b.classList.toggle('active', parseFloat(b.dataset.fl) === currentQuickFl));
+            }
+            function updateQuickApButtons() {
+                quickApButtons.forEach(b => b.classList.toggle('active', parseFloat(b.dataset.ap) === currentQuickAp));
+            }
+
+            function toggleNight() {
+                document.body.classList.toggle('night-mode');
+                nightToggle.textContent = document.body.classList.contains('night-mode') ? '☀️' : '🌙';
+                saveSettings();
+            }
+
+            function saveSettings() {
+                const data = {
+                    preset: currentPreset,
+                    aperture: apertureInput.value,
+                    focalLength: focalLengthInput.value,
+                    pixelPitch: pixelPitchInput.value,
+                    cropFactor: cropFactorInput.value,
+                    declination: declinationInput.value,
+                    accuracy: accuracyInput.value,
+                    nightMode: document.body.classList.contains('night-mode'),
+                    quickFl: currentQuickFl,
+                    quickAp: currentQuickAp,
+                };
+                try { localStorage.setItem('astroexp_settings', JSON.stringify(data)); } catch(e) {}
+            }
+
+            function loadSettings() {
+                try {
+                    const raw = localStorage.getItem('astroexp_settings');
+                    if (!raw) return false;
+                    const d = JSON.parse(raw);
+                    if (d.preset && presets[d.preset]) { currentPreset = d.preset; presetBadge.textContent = presets[d.preset].name; }
+                    if (d.aperture) apertureInput.value = d.aperture;
+                    if (d.focalLength) focalLengthInput.value = d.focalLength;
+                    if (d.pixelPitch) pixelPitchInput.value = d.pixelPitch;
+                    if (d.cropFactor) cropFactorInput.value = d.cropFactor;
+                    if (d.declination) declinationInput.value = d.declination;
+                    if (d.accuracy) accuracyInput.value = d.accuracy;
+                    if (d.quickFl) currentQuickFl = d.quickFl;
+                    if (d.quickAp) currentQuickAp = d.quickAp;
+                    if (d.nightMode) { document.body.classList.add('night-mode'); nightToggle.textContent = '☀️'; }
+                    presetButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === currentPreset));
+                    updateQuickFlButtons();
+                    updateQuickApButtons();
+                    return true;
+                } catch(e) { return false; }
+            }
+
+            [apertureInput, focalLengthInput, pixelPitchInput, cropFactorInput, declinationInput, accuracyInput].forEach(input => {
+                input.addEventListener('input', () => {
+                    if (input === apertureInput) currentQuickAp = parseFloat(input.value) || currentQuickAp;
+                    if (input === focalLengthInput) currentQuickFl = parseFloat(input.value) || currentQuickFl;
+                    updateQuickFlButtons(); updateQuickApButtons();
+                    updateResults(); saveSettings();
+                });
+            });
+            presetButtons.forEach(b => b.addEventListener('click', () => applyPreset(b.dataset.preset)));
+            quickFlButtons.forEach(b => b.addEventListener('click', () => {
+                const fl = parseFloat(b.dataset.fl);
+                if (!isNaN(fl)) { currentQuickFl = fl; focalLengthInput.value = fl; updateQuickFlButtons(); updateResults(); saveSettings(); }
+            }));
+            quickApButtons.forEach(b => b.addEventListener('click', () => {
+                const ap = parseFloat(b.dataset.ap);
+                if (!isNaN(ap)) { currentQuickAp = ap; apertureInput.value = ap; updateQuickApButtons(); updateResults(); saveSettings(); }
+            }));
+            nightToggle.addEventListener('click', toggleNight);
+            document.addEventListener('dblclick', e => { if (e.target.closest('button')) e.preventDefault(); }, {passive: false});
+
+            if ('serviceWorker' in navigator) {
+                const protocol = window.location.protocol;
+                if (protocol === 'https:' || (protocol === 'http:' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))) {
+                    const swCode = "const CACHE_NAME='astroexp-v2';self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll([self.location.href])))});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))});";
+                    const swBlob = new Blob([swCode], {type:'application/javascript'});
+                    navigator.serviceWorker.register(URL.createObjectURL(swBlob), {scope:'/'}).catch(()=>{});
+                }
+            }
+
+            const manifest = {name:'AstroExp',short_name:'AstroExp',start_url:'.',display:'standalone',background_color:'#0a0a14',theme_color:'#0a0a14'};
+            const manifestBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+            const manifestLink = $('#manifest-link');
+            if (manifestLink) manifestLink.href = URL.createObjectURL(manifestBlob);
+
+            if (!loadSettings()) applyPreset('xt5');
+            updateResults();
+        })();
+    </script>
+</body>
+</html>
